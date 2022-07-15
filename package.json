@@ -1,0 +1,23 @@
+{
+  "name": "contracts-verifier-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@cosmjs/amino": "^0.28.4",
+    "@cosmjs/cosmwasm-stargate": "^0.28.4",
+    "@cosmjs/stargate": "^0.28.4",
+    "@openwar/mongodb-queue": "^3.0.0",
+    "cudosjs": "^0.1.1",
+    "dotenv": "^16.0.1",
+    "extract-zip": "^2.0.1",
+    "sha256-file": "^1.0.0",
+    "toml": "^3.0.0",
+    "uuid": "^8.3.2"
+  }
+}
