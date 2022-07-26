@@ -106,6 +106,8 @@ const workLoop = async () => {
             throw `compiled binary hash for ${entries[0]['metadata']['address']} is not equal to deployed contract hash`;
         }
 
+        await setVerificationResult(sourceID, { verified: true });
+
         console.log(`Successfully verified ${sourceID}`);
 
     } catch (e) {
