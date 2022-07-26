@@ -3,8 +3,6 @@ const { ObjectID } = require('bson');
 const { CosmWasmClient } = require('cudosjs');
 const extract = require('extract-zip');
 
-const sha256File = require('sha256-file');
-
 const config = require('./config');
 const  { connectDB, setVerificationResult, removeItemFromQueue } = require('./db');
 const compileSource = require('./sourceCompiler');
