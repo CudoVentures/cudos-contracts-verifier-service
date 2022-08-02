@@ -60,7 +60,6 @@ const workLoop = async () => {
         }
 
         if (await verificationQueue.size() == 0) {
-            console.log('nothing in queue');
             return;
         }
 
