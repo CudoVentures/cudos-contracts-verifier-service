@@ -4,7 +4,8 @@ const { CosmWasmClient } = require('cudosjs');
 const extract = require('extract-zip');
 
 const config = require('./config');
-const  { connectDB, setVerificationResult, removeItemFromQueue } = require('./db');
+const  { connectDB, setVerificationResult, 
+        removeItemFromQueue, addItemToParsingQueue } = require('./db');
 const compileSource = require('./sourceCompiler');
 const verifyContractHash = require('./contractVerifier');
 const { getSourceSavePath, cleanup } = require('./files');
@@ -12,7 +13,7 @@ const { getSourceSavePath, cleanup } = require('./files');
 
 let nodeClient;
 // TODO: Refactor and move these into db.js
-let sourcesBucket, verificationResultsCollection;
+let sourcesBucket;
 let verificationQueue;
 let isNodeConnected = false, isDBConnected = false;
 
@@ -32,7 +33,6 @@ CosmWasmClient.connect(process.env.NODE_RPC_URL).then(async (client) => {
 
 connectDB('contracts_scan', 'sources', 'verification_results').then((dbInfo) => {
     sourcesBucket = dbInfo.sourcesBucket;
-    verificationResultsCollection = dbInfo.verificationResultsCollection;
     verificationQueue = dbInfo.verificationQueue;
 
     isDBConnected = true;
@@ -107,6 +107,10 @@ const workLoop = async () => {
         await setVerificationResult(sourceID, { verified: true });
 
         console.log(`Successfully verified ${sourceID}`);
+
+        await addItemToParsingQueue(sourceID);
+
+        console.log(`Successfully added ${sourceID} to parsing queue.`);
 
     } catch (e) {
         console.error(`processing failed: ${e}`);

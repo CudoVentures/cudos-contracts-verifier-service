@@ -3,6 +3,7 @@ const mongoDbQueue = require('@openwar/mongodb-queue');
 
 
 let verificationQueue, verificationResultsCollection;
+let parsingQueue;
 
 
 module.exports.setVerificationResult = async (sourceID, result) => {
@@ -22,6 +23,14 @@ module.exports.removeItemFromQueue = async (sourceID, queueItem) => {
     }
 }
 
+module.exports.addItemToParsingQueue = async (sourceID) => {
+    try {
+        await parsingQueue.add(sourceID);
+    } catch (e) {
+        console.error(`failed to add ${sourceID} to parsing queue`);
+    }
+}
+
 module.exports.connectDB = async (dbName, sourcesBucketName, verificationResultsCollName) => {
     const client = await MongoClient.connect(process.env.MONGO_URI, {
         connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
@@ -33,6 +42,10 @@ module.exports.connectDB = async (dbName, sourcesBucketName, verificationResults
     verificationQueue = mongoDbQueue(db, 'verification-queue', {
         visibility: process.env.QUEUE_ITEM_VISIBILITY, // 15mins
     });
+
+    parsingQueue = mongoDbQueue(db, 'parsing-queue', {
+        visibility: Number(process.env.QUEUE_ITEM_VISIBILITY),
+    })
 
     verificationResultsCollection = db.collection(verificationResultsCollName);
 

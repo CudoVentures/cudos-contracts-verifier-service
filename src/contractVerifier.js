@@ -17,8 +17,6 @@ module.exports = async (queryClient, binaryPath, address) => {
         throw `failed to query contract ${address} hash with error: ${e}`;``
     }
 
-    // Buffer.from(code.codeInfo.dataHash).toString('hex');
-
     if (binaryHash != codeDetails.checksum) {
         console.error(`binary hash ${binaryHash} not equal to deployed contract hash ${codeDetails.checksum}`);
         return false;
