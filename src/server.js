@@ -113,9 +113,15 @@ const workLoop = async () => {
 
     } catch (e) {
         console.error(`processing failed: ${e}`);
+        
+        let error = e;
 
+        if (Array.isArray(error) || typeof error === 'object') {
+            error = JSON.stringify(error);
+        }
+        
         try {
-            await setVerificationResult(sourceID, { error: JSON.stringify(e) });
+            await setVerificationResult(sourceID, { error: error });
         } catch (e) {
             console.error(e);
         }
