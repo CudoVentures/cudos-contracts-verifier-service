@@ -4,6 +4,7 @@ const mongoDbQueue = require('@openwar/mongodb-queue');
 
 let verificationQueue, verificationResultsCollection;
 let parsingQueue;
+let sourcesCollection;
 
 
 module.exports.setVerificationResult = async (sourceID, result) => {
@@ -14,12 +15,20 @@ module.exports.setVerificationResult = async (sourceID, result) => {
     }
 }
 
+module.exports.updateSource = async (sourceID, result) => {
+    try {
+        await sourcesCollection.updateOne({ _id: sourceID }, { $set: result });
+    } catch (e) {
+        throw `failed updating source for ${sourceID} to ${result} with error: ${e}`;
+    }
+}
+
 module.exports.removeItemFromQueue = async (sourceID, queueItem) => {
     try {
         // TODO: Remove item from queue only after X tries
         await verificationQueue.ack(queueItem.ack);
     } catch (e) {
-        console.error(`failed to acknowledge ${sourceID} ${queueItem.ack}`);
+        throw `failed to acknowledge ${sourceID} ${queueItem.ack}`;
     }
 }
 
@@ -27,7 +36,7 @@ module.exports.addItemToParsingQueue = async (sourceID) => {
     try {
         await parsingQueue.add(sourceID);
     } catch (e) {
-        console.error(`failed to add ${sourceID} to parsing queue`);
+        throw `failed to add ${sourceID} to parsing queue`;
     }
 }
 
@@ -48,6 +57,7 @@ module.exports.connectDB = async (dbName, sourcesBucketName, verificationResults
     })
 
     verificationResultsCollection = db.collection(verificationResultsCollName);
+    sourcesCollection = db.collection(sourcesBucketName + '.files');
 
     return {
         sourcesBucket: new GridFSBucket(db, {bucketName: sourcesBucketName}),
