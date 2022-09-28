@@ -4,12 +4,16 @@ const { CosmWasmClient } = require('cudosjs');
 const extract = require('extract-zip');
 
 const config = require('./config');
-const  { connectDB, setVerificationResult, 
-        removeItemFromQueue, addItemToParsingQueue } = require('./db');
+const {
+    connectDB,
+    setVerificationResult,
+    removeItemFromQueue,
+    addItemToParsingQueue,
+    updateSource
+} = require('./db');
 const compileSource = require('./sourceCompiler');
 const verifyContractHash = require('./contractVerifier');
 const { getSourceSavePath, cleanup } = require('./files');
-
 
 let nodeClient;
 // TODO: Refactor and move these into db.js
@@ -65,16 +69,16 @@ const workLoop = async () => {
 
         queueItem = await verificationQueue.get();
         sourceID = new ObjectID(queueItem.payload);
-        
+
         const cursor = await sourcesBucket.find({ _id: sourceID });
         const entries = await cursor.toArray();
-        
+
         if (entries.length == 0) {
             throw `source ${sourceID} not found`;
         }
 
         const sourceSavePath = getSourceSavePath();
-        
+
         await new Promise((resolve, reject) => {
             const stream = fs.createWriteStream(sourceSavePath);
             stream.on('finish', () => { resolve(); });
@@ -90,36 +94,48 @@ const workLoop = async () => {
         await extract(sourceSavePath, { dir: extractPath });
 
         console.log(`extracted to ${extractPath}`);
-        
+
+        let metadata = entries[0]['metadata'];
+
         let crateName;
 
-        if ('crateName' in entries[0]['metadata']) {
-            crateName = entries[0]['metadata']['crateName'];
+        if ('crateName' in metadata) {
+            crateName = metadata['crateName'];
         }
 
-        const binaryPath = compileSource(extractPath, entries[0]['metadata']['optimizer'], crateName);
+        const binaryPath = compileSource(extractPath, metadata['optimizer'], crateName);
 
-        if (await verifyContractHash(nodeClient, binaryPath, entries[0]['metadata']['address']) == false) {
-            throw `compiled binary hash for ${entries[0]['metadata']['address']} is not equal to deployed contract hash`;
+        try {
+            const contract = await nodeClient.getContract(metadata['address']);
+            metadata['codeID'] = contract.codeId;
+        } catch (e) {
+            throw `failed to query contract ${metadata['address']} hash with error: ${e}`;
+        }
+
+        if (await verifyContractHash(nodeClient, binaryPath, metadata['codeID']) == false) {
+            throw `compiled binary hash for ${contractAddress} is not equal to deployed contract hash`;
         }
 
         await setVerificationResult(sourceID, { verified: true });
 
         console.log(`Successfully verified ${sourceID}`);
 
+        await updateSource(sourceID, { metadata: metadata });
+        console.log('Successfully added codeID to source metadata');
+        
         await addItemToParsingQueue(sourceID);
 
         console.log(`Successfully added ${sourceID} to parsing queue.`);
 
     } catch (e) {
         console.error(`processing failed: ${e}`);
-        
+
         let error = e;
 
         if (Array.isArray(error) || typeof error === 'object') {
             error = JSON.stringify(error);
         }
-        
+
         try {
             await setVerificationResult(sourceID, { error: error });
         } catch (e) {

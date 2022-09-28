@@ -1,7 +1,7 @@
 const sha256File = require('sha256-file');
 
 
-module.exports = async (queryClient, binaryPath, address) => {
+module.exports = async (queryClient, binaryPath, codeID) => {
     let binaryHash, contract, codeDetails;
 
     try {
@@ -11,10 +11,9 @@ module.exports = async (queryClient, binaryPath, address) => {
     }
 
     try {
-        contract = await queryClient.getContract(address);
-        codeDetails = await queryClient.getCodeDetails(contract.codeId);
+        codeDetails = await queryClient.getCodeDetails(codeID);
     } catch (e) {
-        throw `failed to query contract ${address} hash with error: ${e}`;``
+        throw `failed to query code details for codeID ${codeID} with error: ${e}`;``
     }
 
     if (binaryHash != codeDetails.checksum) {
